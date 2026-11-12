@@ -9,6 +9,30 @@ export async function facturar(userId:number,body:Record<string,unknown>){
   const {clienteId,formaPago,lineas}=body
   if(!(clienteId===null||entero(clienteId))||typeof formaPago!=='string'||!['CONTADO','TARJETA','CUENTA_CORRIENTE'].includes(formaPago))throw new ErrorVenta(422,'Datos de venta inválidos')
   if(!Array.isArray(lineas)||!lineas.length||lineas.length>200||lineas.some(l=>!entero(l?.id)||!entero(l?.cantidad))||new Set(lineas.map(l=>l.id)).size!==lineas.length)throw new ErrorVenta(422,'Revisá los renglones')
+  const permitidos = ['clienteId','formaPago','lineas']
+  let tarjeta: {tipo:string; marca:string; ultimos4:string} | undefined
+  let recibido: number | undefined
+  if (formaPago === 'CONTADO') {
+    permitidos.push('montoRecibido')
+    if (body.montoRecibido !== undefined) {
+      const n = body.montoRecibido
+      if (typeof n !== 'number' || !Number.isSafeInteger(n) || n < 0) throw new ErrorVenta(422,'Monto recibido inválido.')
+      recibido = n
+    }
+  }
+  if (formaPago === 'TARJETA') {
+    permitidos.push('tarjeta')
+    const t = body.tarjeta as Record<string,unknown> | null
+    if (!t || typeof t !== 'object' || Object.keys(t).some(k=>!['tipo','marca','ultimos4'].includes(k)) ||
+        (t.tipo !== 'debito' && t.tipo !== 'credito') || typeof t.marca !== 'string' ||
+        !/^[\p{L}][\p{L} .-]{0,39}$/u.test(t.marca.trim()) || typeof t.ultimos4 !== 'string' || !/^\d{4}$/.test(t.ultimos4)) {
+      throw new ErrorVenta(422,'Ingresá tipo, marca y únicamente los últimos cuatro dígitos.')
+    }
+    tarjeta = {tipo:t.tipo,marca:t.marca.trim(),ultimos4:t.ultimos4}
+  }
+  if (Object.keys(body).some(k=>!permitidos.includes(k)) || lineas.some(l=>Object.keys(l).some(k=>k!=='id' && k!=='cantidad'))) {
+    throw new ErrorVenta(422,'Hay campos que no corresponden a la venta.')
+  }
   return db.transaction(async tx=>{
     const [cliente]=clienteId?await tx.select().from(clientes).where(eq(clientes.id,clienteId)):[]
     if(cliente && !cliente.activo) throw new ErrorVenta(422,'El cliente está dado de baja.')
@@ -26,8 +50,11 @@ export async function facturar(userId:number,body:Record<string,unknown>){
       const [cuenta] = await tx.select({saldo:sql<number>`coalesce(sum(${movimientos_cuenta.importe}),0)`}).from(movimientos_cuenta).where(eq(movimientos_cuenta.cliente_id,cliente.id))
       if (cuenta.saldo + total > cliente.limite_credito) throw new ErrorVenta(422,'La venta supera el límite de crédito del cliente.')
     }
-    await tx.update(facturas).set({total}).where(eq(facturas.id,venta.id))
+    const montoRecibido = formaPago === 'CONTADO' ? recibido ?? total : null
+    if (montoRecibido !== null && montoRecibido < total) throw new ErrorVenta(422,'El monto recibido no cubre el total.')
+    await tx.update(facturas).set({total,monto_recibido:montoRecibido,tarjeta_tipo:tarjeta?.tipo,
+      tarjeta_marca:tarjeta?.marca,tarjeta_ultimos4:tarjeta?.ultimos4}).where(eq(facturas.id,venta.id))
     if(formaPago==='CUENTA_CORRIENTE'&&clienteId)await tx.insert(movimientos_cuenta).values({cliente_id:clienteId,factura_id:venta.id,importe:total})
-    return {numero:venta.id,total}
+    return {numero:venta.id,total,...(montoRecibido !== null ? {montoRecibido,vuelto:montoRecibido-total} : {})}
   })
 }

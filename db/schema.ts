@@ -51,6 +51,10 @@ export const facturas = sqliteTable('facturas', {
   cliente_id: integer('cliente_id').references(()=>clientes.id),
   usuario_id: integer('usuario_id').notNull().references(()=>usuarios.id),
   nombre_cliente: text('nombre_cliente').notNull(),
+  monto_recibido: integer('monto_recibido'),
+  tarjeta_tipo: text('tarjeta_tipo'),
+  tarjeta_marca: text('tarjeta_marca'),
+  tarjeta_ultimos4: text('tarjeta_ultimos4'),
   forma_pago: text('forma_pago').notNull(),
   total: integer('total').notNull()
 })

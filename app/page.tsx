@@ -4,7 +4,7 @@ import React,{useEffect,useState,useRef} from 'react'
 
 
 type Producto={id:number;codigo:string;nombre:string;precio:number;stock:number}
-type Cliente={id:number;nombre:string;documento:string}
+type Cliente={id:number;nombre:string;documento:string;habilitado:number;limiteCredito:number|null;saldo:number}
 type Usuario={nombre:string;rol:string}
 const pesos=(n:number)=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS'}).format(n/100)
 async function api<T=unknown>(ruta:string,method='GET',body?:unknown):Promise<T>{
@@ -42,6 +42,11 @@ function Venta(){
     setProducts(p);setClients(c);select(String(p[0]?.id??''))
   }
   useEffect(()=>{load().catch(err=>notify(err instanceof Error?err.message:'Error inesperado'))},[])
+  const [efectivo,setEfectivo]=useState('')
+  const [tipo,setTipo]=useState('debito')
+  const [marca,setMarca]=useState('')
+  const [ultimos4,setUltimos4]=useState('')
+  const comprador=clients.find(c=>String(c.id)===client)
   const [textoCliente,buscarCliente]=useState('')
   const [textoProducto,buscarProducto]=useState('')
   const [unidades,cambiarUnidades]=useState('1')
@@ -63,6 +68,11 @@ function Venta(){
   }
   const lines=products.filter(p=>cart[p.id]>0)
   const total=lines.reduce((sum,p)=>sum+p.precio*cart[p.id],0)
+  const recibido=efectivo === '' ? total : Math.round(Number(efectivo)*100)
+  const disponible=comprador && comprador.limiteCredito !== null ? comprador.limiteCredito-comprador.saldo : null
+  const pagoValido=pay==='CONTADO' ? Number.isSafeInteger(recibido) && recibido>=total :
+    pay==='TARJETA' ? Boolean(marca.trim() && /^\d{4}$/.test(ultimos4)) :
+    Boolean(comprador?.habilitado && (disponible===null || total<=disponible))
   function quantity(p:Producto|undefined,n:number){
     if(!p)return
     if(!Number.isSafeInteger(n)||n<0||n>p.stock){notify('Cantidad inválida. Stock disponible: '+p.stock);return}
@@ -71,9 +81,9 @@ function Venta(){
   async function confirm(){
     setBusy(true);notify('')
     try{
-      const sale=await api<{numero:number;total:number}>('ventas','POST',{clienteId:client?Number(client):null,formaPago:pay,lineas:lines.map(p=>({id:p.id,cantidad:cart[p.id]}))})
-      setCart({});setClient('');setPay('CONTADO');buscarCliente('');buscarProducto('');cambiarUnidades('1')
-      const receipt='Comprobante #'+sale.numero+' · '+pesos(sale.total)
+      const sale=await api<{numero:number;total:number;vuelto?:number}>('ventas','POST',{clienteId:client?Number(client):null,formaPago:pay,...(pay==='CONTADO' ? {montoRecibido:recibido} : pay==='TARJETA' ? {tarjeta:{tipo,marca,ultimos4}} : {}),lineas:lines.map(p=>({id:p.id,cantidad:cart[p.id]}))})
+      setEfectivo('');setTipo('debito');setMarca('');setUltimos4('');setCart({});setClient('');setPay('CONTADO');buscarCliente('');buscarProducto('');cambiarUnidades('1')
+      const receipt='Comprobante #'+sale.numero+' · '+pesos(sale.total)+(sale.vuelto!==undefined?' · Vuelto '+pesos(sale.vuelto):'')
       notify(receipt)
       try{await load()}catch{notify(receipt+' · Recargá para actualizar el catálogo.')}
     }catch(err){notify(err instanceof Error?err.message:'Error inesperado')}finally{setBusy(false)}
@@ -81,13 +91,13 @@ function Venta(){
   return <><h1>Crear una venta</h1><fieldset disabled={busy}><div className="grid"><section>
     <h2>Comprador</h2>
     <label>Buscar cliente por nombre o documento<input type="search" value={textoCliente} onChange={e=>buscarCliente(e.target.value)}/></label>
-    <label>Cliente<select value={client} onChange={e=>{setClient(e.target.value);if(!e.target.value)setPay('CONTADO')}}>
+    <label>Cliente<select value={client} onChange={e=>{setClient(e.target.value);if(pay==='CUENTA_CORRIENTE' && !clients.find(c=>String(c.id)===e.target.value)?.habilitado)setPay('CONTADO')}}>
       <option value="">Consumidor final</option>{compradores.map(c=><option key={c.id} value={c.id}>{c.nombre} · {c.documento}</option>)}</select></label>
     <button type="button" onClick={()=>dialogo.current?.showModal()}>Nuevo cliente</button>
     <dialog ref={dialogo} aria-labelledby="alta-comprador"><h2 id="alta-comprador">Nuevo cliente</h2>
       <Formulario alCrear={c=>{
-        setClients(prev=>[...prev,{id:c.id,nombre:c.nombre,documento:c.nroDoc}])
-        setClient(String(c.id));buscarCliente('');dialogo.current?.close()
+        setClients(prev=>[...prev,{id:c.id,nombre:c.nombre,documento:c.nroDoc,habilitado:Number(c.cuentaCorriente),limiteCredito:c.limiteCredito,saldo:0}])
+        setClient(String(c.id));if(pay==='CUENTA_CORRIENTE' && !c.cuentaCorriente)setPay('CONTADO');buscarCliente('');dialogo.current?.close()
       }}/>
       <button type="button" onClick={()=>dialogo.current?.close()}>Cerrar</button>
     </dialog>
@@ -100,5 +110,12 @@ function Venta(){
       {producto && <p>Existencia: {producto.stock} · En esta venta: {cart[producto.id] ?? 0}</p>}
       <label>Unidades a agregar<input type="number" min="1" step="1" required value={unidades} onChange={e=>cambiarUnidades(e.target.value)}/></label>
       <button disabled={!producto || producto.stock<1}>Agregar</button>
-    </form>{lines.map(p=><div className="line" key={p.id}><strong>{p.nombre}</strong><span>Existencia: {p.stock}</span><label>Cantidad<input type="number" min="1" max={p.stock} value={cart[p.id]} onChange={e=>quantity(p,e.target.valueAsNumber)}/></label><span>{pesos(p.precio)} c/u · {pesos(p.precio*cart[p.id])}</span><button onClick={()=>quantity(p,0)}>Quitar</button></div>)}</section><section><h2>Resumen de venta</h2><p>Total <strong>{pesos(total)}</strong></p><label>Forma de pago<select value={pay} onChange={e=>setPay(e.target.value)}><option value="CONTADO">Contado</option><option value="TARJETA">Tarjeta</option><option value="CUENTA_CORRIENTE" disabled={!client}>Cuenta corriente</option></select></label><button disabled={!lines.length} onClick={confirm}>Confirmar venta</button></section></div></fieldset><p role="status">{message}</p></>
+    </form>{lines.map(p=><div className="line" key={p.id}><strong>{p.nombre}</strong><span>Existencia: {p.stock}</span><label>Cantidad<input type="number" min="1" max={p.stock} value={cart[p.id]} onChange={e=>quantity(p,e.target.valueAsNumber)}/></label><span>{pesos(p.precio)} c/u · {pesos(p.precio*cart[p.id])}</span><button onClick={()=>quantity(p,0)}>Quitar</button></div>)}</section><section><h2>Resumen de venta</h2><p>Total <strong>{pesos(total)}</strong></p><label>Forma de pago<select value={pay} onChange={e=>setPay(e.target.value)}><option value="CONTADO">Contado</option><option value="TARJETA">Tarjeta</option><option value="CUENTA_CORRIENTE" disabled={!comprador?.habilitado}>Cuenta corriente</option></select></label>{pay==='CONTADO' && <><label>Monto recibido en pesos<input type="number" min="0" step="0.01" placeholder={(total/100).toFixed(2)} value={efectivo} onChange={e=>setEfectivo(e.target.value)}/></label>
+      <p>{recibido>=total ? 'Vuelto: '+pesos(recibido-total) : 'Falta cobrar: '+pesos(total-recibido)}</p></>}
+    {pay==='TARJETA' && <><label>Tipo de tarjeta<select value={tipo} onChange={e=>setTipo(e.target.value)}><option value="debito">Débito</option><option value="credito">Crédito</option></select></label>
+      <label>Marca<input value={marca} maxLength={40} onChange={e=>setMarca(e.target.value)}/></label>
+      <label>Últimos cuatro dígitos<input inputMode="numeric" autoComplete="off" maxLength={4} value={ultimos4} onChange={e=>setUltimos4(e.target.value.replace(/\D/g,''))}/></label></>}
+    {pay==='CUENTA_CORRIENTE' && comprador && <><p>Saldo actual: {pesos(comprador.saldo)} · Saldo con esta venta: {pesos(comprador.saldo+total)}</p>
+      <p>{disponible===null?'Sin límite de crédito': 'Crédito disponible: '+pesos(disponible)}</p>{!pagoValido && <p>El total supera el crédito disponible.</p>}</>}
+    <button disabled={!lines.length || !pagoValido} onClick={confirm}>Confirmar venta</button></section></div></fieldset><p role="status">{message}</p></>
 }

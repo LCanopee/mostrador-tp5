@@ -3,7 +3,7 @@ import {useState,type FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 type Cliente = {id:number;nombre:string;tipo_doc:string;documento:string;email:string|null;domicilio:string|null;telefono:string|null;habilitado:number;limite_credito:number|null}
 
-export default function Formulario({cliente,alCrear}:{cliente?:Cliente;alCrear?:(c:{id:number;nombre:string;nroDoc:string})=>void}) {
+export default function Formulario({cliente,alCrear}:{cliente?:Cliente;alCrear?:(c:{id:number;nombre:string;nroDoc:string;cuentaCorriente:boolean;limiteCredito:number|null})=>void}) {
   const router = useRouter()
   const [mensaje,avisar] = useState('')
   const [ocupado,esperar] = useState(false)

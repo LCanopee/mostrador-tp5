@@ -36,6 +36,13 @@
       "when": 1794509103387,
       "tag": "0004_estado_cliente",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794509435196,
+      "tag": "0005_forma_pago_factura",
+      "breakpoints": true
     }
   ]
 }

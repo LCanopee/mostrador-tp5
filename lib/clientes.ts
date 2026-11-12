@@ -15,7 +15,7 @@ export async function listarClientes(params:URLSearchParams) {
   const page = positivo(params.get('page'),1)
   const pageSize = Math.min(100,positivo(params.get('pageSize'),20))
   const cuentas = db.select({
-    id:clientes.id, nombre:clientes.nombre, documento:clientes.documento, activo:clientes.activo,
+    id:clientes.id, nombre:clientes.nombre, documento:clientes.documento, activo:clientes.activo, habilitado:clientes.habilitado, limiteCredito:clientes.limite_credito,
     saldo:sql<number>`coalesce(sum(${movimientos_cuenta.importe}), 0)`.as('saldo')
   }).from(clientes).leftJoin(movimientos_cuenta,eq(clientes.id,movimientos_cuenta.cliente_id))
     .groupBy(clientes.id).as('cuentas')

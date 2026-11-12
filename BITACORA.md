@@ -199,3 +199,10 @@ La búsqueda de comprador admite nombre o documento. La opción inicial es Consu
 Prueba de la lógica del componente con datos simulados: buscar cafe encontró Café, dos agregados dejaron dos unidades en un solo renglón, seleccionar el cliente recién creado conservó ambas unidades y agregar tres más con stock cuatro dejó intacto el carrito. También se comprobó la búsqueda de documento con puntos. TypeScript pasó. Pendiente la prueba visual publicada.
 
 Pregunta para la defensa: ¿qué datos cambian al crear un cliente en una venta en curso? Se agrega al listado y se selecciona su id. Los renglones viven en el componente de venta y conservan sus cantidades mientras se abre y cierra el formulario.
+
+### Formas de pago en ventas (RF-V5)
+La venta de contado muestra el vuelto. Si se deja vacío el monto recibido se usa el total. Para tarjeta se solicita tipo, marca y los últimos cuatro dígitos. El cliente habilitado para cuenta corriente puede ver su saldo y crédito disponible; el servidor vuelve a calcular la deuda en la transacción. La migración 0005 agrega campos opcionales a las facturas para conservar los datos de cobro de las nuevas ventas.
+
+En base aislada: $7.000 recibidos para una venta de $6.500 devolvieron $500. El pago exacto devolvió cero. La tarjeta conservó los ceros iniciales de los últimos cuatro dígitos. Una venta por el límite de crédito pasó. Los rechazos por efectivo insuficiente, datos adicionales de tarjeta, consumidor final a crédito y exceso de límite mantuvieron factura, stock y saldo sin cambios. TypeScript pasó. Pendientes migración remota y prueba visual.
+
+Pregunta para la defensa: ¿por qué el servidor recalcula el vuelto y verifica el crédito? Usa el precio y el saldo vigentes al confirmar, aunque hayan cambiado desde que se abrió la pantalla.
