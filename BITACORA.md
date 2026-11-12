@@ -192,3 +192,10 @@ La migración 0004 agrega el estado activo, inicialmente verdadero para las cuen
 Prueba en base aislada: una venta a crédito impidió la baja; al pagar la deuda se pudo desactivar. El cliente desapareció de la selección activa, el historial y el recibo siguieron accesibles, una venta directa fue rechazada y al reactivar se pudo volver a vender. TypeScript pasó y la migración se aplicó en SQLite local. Falta aplicarla en Turso y verificar Vercel.
 
 Pregunta para la defensa: ¿por qué validar el estado en el servidor si el cliente ya no aparece en el selector? El usuario puede haber abierto la venta antes de la baja. La validación al confirmar aplica el estado vigente.
+
+### Armado de la venta (RF-V2 a RF-V4)
+La búsqueda de comprador admite nombre o documento. La opción inicial es Consumidor final. Nuevo cliente abre el formulario de Clientes dentro de un diálogo y usa el mismo POST. Al crearlo, la venta selecciona su identificador y conserva el carrito. Para los productos, se filtra por código o descripción, se elige la cantidad y se agrega con Enter. La columna de existencia permite comparar el stock con las unidades acumuladas.
+
+Prueba de la lógica del componente con datos simulados: buscar cafe encontró Café, dos agregados dejaron dos unidades en un solo renglón, seleccionar el cliente recién creado conservó ambas unidades y agregar tres más con stock cuatro dejó intacto el carrito. También se comprobó la búsqueda de documento con puntos. TypeScript pasó. Pendiente la prueba visual publicada.
+
+Pregunta para la defensa: ¿qué datos cambian al crear un cliente en una venta en curso? Se agrega al listado y se selecciona su id. Los renglones viven en el componente de venta y conservan sus cantidades mientras se abre y cierra el formulario.

@@ -1,9 +1,10 @@
 'use client'
-import React,{useEffect,useState} from 'react'
+import Formulario from './clientes/Formulario'
+import React,{useEffect,useState,useRef} from 'react'
 
 
 type Producto={id:number;codigo:string;nombre:string;precio:number;stock:number}
-type Cliente={id:number;nombre:string}
+type Cliente={id:number;nombre:string;documento:string}
 type Usuario={nombre:string;rol:string}
 const pesos=(n:number)=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS'}).format(n/100)
 async function api<T=unknown>(ruta:string,method='GET',body?:unknown):Promise<T>{
@@ -41,6 +42,25 @@ function Venta(){
     setProducts(p);setClients(c);select(String(p[0]?.id??''))
   }
   useEffect(()=>{load().catch(err=>notify(err instanceof Error?err.message:'Error inesperado'))},[])
+  const [textoCliente,buscarCliente]=useState('')
+  const [textoProducto,buscarProducto]=useState('')
+  const [unidades,cambiarUnidades]=useState('1')
+  const dialogo=useRef<HTMLDialogElement>(null)
+  const normalizar=(s:string)=>s.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+  const consulta=normalizar(textoCliente)
+  const documento=consulta.replace(/[.\s-]/g,'')
+  const compradores=clients.filter(c=>String(c.id)===client || normalizar(c.nombre).includes(consulta) ||
+    (documento && c.documento.replace(/[.\s-]/g,'').includes(documento)))
+  const termino=normalizar(textoProducto)
+  const opciones=products.filter(p=>normalizar(p.codigo).includes(termino)||normalizar(p.nombre).includes(termino))
+  const producto=opciones.find(p=>String(p.id)===selected) ?? opciones[0]
+  function agregar(e:React.FormEvent) {
+    e.preventDefault()
+    if (!producto) return
+    const n=Number(unidades)
+    if (!Number.isSafeInteger(n) || n<1) {notify('Ingresá una cantidad entera positiva.');return}
+    quantity(producto,(cart[producto.id] ?? 0)+n)
+  }
   const lines=products.filter(p=>cart[p.id]>0)
   const total=lines.reduce((sum,p)=>sum+p.precio*cart[p.id],0)
   function quantity(p:Producto|undefined,n:number){
@@ -52,11 +72,33 @@ function Venta(){
     setBusy(true);notify('')
     try{
       const sale=await api<{numero:number;total:number}>('ventas','POST',{clienteId:client?Number(client):null,formaPago:pay,lineas:lines.map(p=>({id:p.id,cantidad:cart[p.id]}))})
-      setCart({});setClient('');setPay('CONTADO')
+      setCart({});setClient('');setPay('CONTADO');buscarCliente('');buscarProducto('');cambiarUnidades('1')
       const receipt='Comprobante #'+sale.numero+' · '+pesos(sale.total)
       notify(receipt)
       try{await load()}catch{notify(receipt+' · Recargá para actualizar el catálogo.')}
     }catch(err){notify(err instanceof Error?err.message:'Error inesperado')}finally{setBusy(false)}
   }
-  return <><h1>Crear una venta</h1><fieldset disabled={busy}><div className="grid"><section><h2>Cliente</h2><select aria-label="Cliente" value={client} onChange={e=>{setClient(e.target.value);if(!e.target.value)setPay('CONTADO')}}><option value="">Consumidor final</option>{clients.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select><h2>Productos</h2><select aria-label="Producto" value={selected} onChange={e=>select(e.target.value)}>{products.map(p=><option value={p.id} key={p.id}>{p.codigo} · {p.nombre} · {pesos(p.precio)}</option>)}</select><button disabled={!selected} onClick={()=>quantity(products.find(p=>p.id===Number(selected)),(cart[Number(selected)]||0)+1)}>Agregar</button>{lines.map(p=><div className="line" key={p.id}><strong>{p.nombre}</strong><label>Cantidad<input type="number" min="1" max={p.stock} value={cart[p.id]} onChange={e=>quantity(p,e.target.valueAsNumber)}/></label><span>{pesos(p.precio)} c/u · {pesos(p.precio*cart[p.id])}</span><button onClick={()=>quantity(p,0)}>Quitar</button></div>)}</section><section><h2>Resumen de venta</h2><p>Total <strong>{pesos(total)}</strong></p><label>Forma de pago<select value={pay} onChange={e=>setPay(e.target.value)}><option value="CONTADO">Contado</option><option value="TARJETA">Tarjeta</option><option value="CUENTA_CORRIENTE" disabled={!client}>Cuenta corriente</option></select></label><button disabled={!lines.length} onClick={confirm}>Confirmar venta</button></section></div></fieldset><p role="status">{message}</p></>
+  return <><h1>Crear una venta</h1><fieldset disabled={busy}><div className="grid"><section>
+    <h2>Comprador</h2>
+    <label>Buscar cliente por nombre o documento<input type="search" value={textoCliente} onChange={e=>buscarCliente(e.target.value)}/></label>
+    <label>Cliente<select value={client} onChange={e=>{setClient(e.target.value);if(!e.target.value)setPay('CONTADO')}}>
+      <option value="">Consumidor final</option>{compradores.map(c=><option key={c.id} value={c.id}>{c.nombre} · {c.documento}</option>)}</select></label>
+    <button type="button" onClick={()=>dialogo.current?.showModal()}>Nuevo cliente</button>
+    <dialog ref={dialogo} aria-labelledby="alta-comprador"><h2 id="alta-comprador">Nuevo cliente</h2>
+      <Formulario alCrear={c=>{
+        setClients(prev=>[...prev,{id:c.id,nombre:c.nombre,documento:c.nroDoc}])
+        setClient(String(c.id));buscarCliente('');dialogo.current?.close()
+      }}/>
+      <button type="button" onClick={()=>dialogo.current?.close()}>Cerrar</button>
+    </dialog>
+    <h2>Productos</h2>
+    <form onSubmit={agregar}>
+      <label>Buscar por código o descripción<input type="search" value={textoProducto} onChange={e=>{buscarProducto(e.target.value);select('')}}/></label>
+      <label>Producto<select value={producto?.id ?? ''} onChange={e=>select(e.target.value)}>
+        {!opciones.length && <option value="">Sin coincidencias</option>}
+        {opciones.map(p=><option key={p.id} value={p.id}>{p.codigo} · {p.nombre} · {pesos(p.precio)}</option>)}</select></label>
+      {producto && <p>Existencia: {producto.stock} · En esta venta: {cart[producto.id] ?? 0}</p>}
+      <label>Unidades a agregar<input type="number" min="1" step="1" required value={unidades} onChange={e=>cambiarUnidades(e.target.value)}/></label>
+      <button disabled={!producto || producto.stock<1}>Agregar</button>
+    </form>{lines.map(p=><div className="line" key={p.id}><strong>{p.nombre}</strong><span>Existencia: {p.stock}</span><label>Cantidad<input type="number" min="1" max={p.stock} value={cart[p.id]} onChange={e=>quantity(p,e.target.valueAsNumber)}/></label><span>{pesos(p.precio)} c/u · {pesos(p.precio*cart[p.id])}</span><button onClick={()=>quantity(p,0)}>Quitar</button></div>)}</section><section><h2>Resumen de venta</h2><p>Total <strong>{pesos(total)}</strong></p><label>Forma de pago<select value={pay} onChange={e=>setPay(e.target.value)}><option value="CONTADO">Contado</option><option value="TARJETA">Tarjeta</option><option value="CUENTA_CORRIENTE" disabled={!client}>Cuenta corriente</option></select></label><button disabled={!lines.length} onClick={confirm}>Confirmar venta</button></section></div></fieldset><p role="status">{message}</p></>
 }

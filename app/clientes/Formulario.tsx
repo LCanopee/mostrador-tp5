@@ -3,7 +3,7 @@ import {useState,type FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 type Cliente = {id:number;nombre:string;tipo_doc:string;documento:string;email:string|null;domicilio:string|null;telefono:string|null;habilitado:number;limite_credito:number|null}
 
-export default function Formulario({cliente}:{cliente?:Cliente}) {
+export default function Formulario({cliente,alCrear}:{cliente?:Cliente;alCrear?:(c:{id:number;nombre:string;nroDoc:string})=>void}) {
   const router = useRouter()
   const [mensaje,avisar] = useState('')
   const [ocupado,esperar] = useState(false)
@@ -19,11 +19,12 @@ export default function Formulario({cliente}:{cliente?:Cliente}) {
       if (!res.ok) throw Error((await res.json()).error.message)
       if (!cliente) form.reset()
       avisar(cliente ? 'Cambios guardados.' : 'Cliente creado.')
-      router.refresh()
+      if (alCrear) alCrear(await res.json())
+      else router.refresh()
     } catch(e) {avisar(e instanceof Error ? e.message : 'No se pudo guardar.')}
     finally {esperar(false)}
   }
-  return <details><summary>{cliente ? 'Editar cliente' : 'Nuevo cliente'}</summary><form onSubmit={enviar}><fieldset disabled={ocupado}>
+  const formulario = <form onSubmit={enviar}><fieldset disabled={ocupado}>
     <label>Nombre o razón social<input required name="nombre" defaultValue={cliente?.nombre}/></label>
     <label>Tipo de documento<select name="tipoDoc" defaultValue={cliente?.tipo_doc ?? 'DNI'}><option>DNI</option><option>CUIT</option></select></label>
     <label>Número de documento<input required name="nroDoc" defaultValue={cliente?.documento}/></label>
@@ -32,5 +33,6 @@ export default function Formulario({cliente}:{cliente?:Cliente}) {
     <label>Email<input type="email" name="email" defaultValue={cliente?.email ?? ''}/></label>
     <label><input type="checkbox" name="cuentaCorriente" style={{width:'auto'}} defaultChecked={Boolean(cliente?.habilitado)}/> Habilitar cuenta corriente</label>
     <label>Límite de crédito en pesos (opcional)<input type="number" min="0" step="0.01" name="limiteCredito" defaultValue={cliente?.limite_credito == null ? '' : (cliente.limite_credito/100).toFixed(2)}/></label>
-    <button>Guardar cliente</button></fieldset><p role="status">{mensaje}</p></form></details>
+    <button>Guardar cliente</button></fieldset><p role="status">{mensaje}</p></form>
+  return alCrear ? formulario : <details><summary>{cliente ? 'Editar cliente' : 'Nuevo cliente'}</summary>{formulario}</details>
 }
