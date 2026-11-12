@@ -157,3 +157,10 @@ Desde Ventas o Productos, el administrador abre Usuarios para crear cuentas, edi
 Pruebas con una base aislada: contraseña inicial verificada contra su hash, rechazo de email duplicado y llamadas de vendedor, protección de la cuenta propia, cambio de rol, baja con revocación de sesión, búsqueda por estado y reactivación. TypeScript pasó. Pendiente verificación visual en Vercel.
 
 Pregunta para la defensa: ¿qué pasa si un vendedor ya tiene una pestaña abierta cuando se desactiva su cuenta? La pantalla puede seguir mostrando lo que tenía cargado. La próxima operación protegida requiere una sesión válida y un usuario activo.
+
+### Listado de clientes y deudores (RF-C1 y RF-C6)
+Desde Ventas se abre Clientes para consultar nombre, documento y saldo. El servicio agrupa los movimientos por cliente y suma sus importes en centavos. Una unión externa permite incluir a quienes aún no tienen movimientos, con saldo cero. La búsqueda admite documentos con puntos o guiones. Al elegir clientes con deuda, ordena por saldo descendente y calcula el total de todos los resultados filtrados antes de paginar. La pantalla de ventas lee la nueva respuesta paginada para mantener todos los clientes disponibles.
+
+Pruebas en una base aislada: clientes sin movimientos, dos ventas en cuenta corriente a distintos clientes, orden por deuda, búsqueda por nombre y documento, consulta sin resultados y total mantenido al cambiar de página. TypeScript pasó. Pendiente prueba visual en Vercel.
+
+Pregunta para la defensa: si hay veinte deudores y solo se muestran diez por página, ¿qué representa el total? Suma los saldos de todos los clientes que cumplen los filtros.
