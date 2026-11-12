@@ -23,8 +23,9 @@ export async function moverStock(tx:Tx, cambio:Cambio) {
   const [producto]=await tx.update(productos).set({stock:sql`${productos.stock} + ${cantidad}`})
     .where(and(eq(productos.id,productoId),limites,tipo==='venta'?eq(productos.activo,1):undefined)).returning()
   if (!producto) {
-    const [actual]=await tx.select({id:productos.id}).from(productos).where(eq(productos.id,productoId))
+    const [actual]=await tx.select({id:productos.id,activo:productos.activo}).from(productos).where(eq(productos.id,productoId))
     if (!actual) throw new ErrorStock(404,'NO_ENCONTRADO','Producto inexistente.')
+    if (tipo==='venta' && !actual.activo) throw new ErrorStock(422,'PRODUCTO_INACTIVO','El producto está dado de baja.')
     if (cantidad<0) throw new ErrorStock(409,'STOCK_INSUFICIENTE','La salida supera la existencia disponible o el producto no admite la venta.')
     throw new ErrorStock(422,'VALIDACION','La existencia resultante excede el máximo permitido.')
   }

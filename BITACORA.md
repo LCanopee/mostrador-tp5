@@ -143,3 +143,10 @@ El catálogo combina el texto y la categoría para ambos roles. La URL conserva 
 Prueba local con 31 productos: primera página de 20, segunda sin identificadores repetidos, combinación de categoría y código, límite de tamaño y página fuera de rango. TypeScript pasó. Falta confirmar el recorrido publicado.
 
 Pregunta para la defensa: ¿por qué se cuenta después de aplicar los filtros? El total permite calcular cuántas páginas tienen resultados para esa búsqueda.
+
+### Edición y baja lógica de productos (RF-P2 y RF-P3)
+En la ficha, el administrador puede editar código, descripción, categoría, precio y stock mínimo. PATCH /api/productos/{id} valida los campos, el rol, la categoría y la unicidad del código. La baja cambia el estado activo. El administrador puede incluir inactivos en el catálogo para consultar su historial y reactivarlos. La venta verifica el estado al confirmar, incluso si el producto ya estaba en el carrito.
+
+En una base aislada emitimos una venta, cambiamos el precio y la descripción, dimos el producto de baja y comprobamos que el renglón de factura conservó los valores originales. El historial y el stock se conservaron, la siguiente venta fue rechazada y la reactivación volvió a permitirla. Verificamos además código duplicado, rechazo al vendedor y rechazo de cambios directos de existencia. TypeScript pasó. Pendiente prueba visual en Vercel.
+
+Pregunta para la defensa: ¿cómo se conserva el precio original de una factura al editar o desactivar un producto? Al confirmar la venta se copian precio y descripción al renglón de factura. La baja lógica mantiene el producto y las referencias de los movimientos.

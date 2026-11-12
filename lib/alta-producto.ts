@@ -41,3 +41,32 @@ export async function crearProducto(usuario: {id:number; rol:string}, body: unkn
     return {id:nuevo.id, codigo:nuevo.codigo, descripcion:nuevo.nombre, categoria:{id:categoria.id,nombre:categoria.nombre}, precio, existencia:stockInicial, stockMinimo, bajoMinimo:stockInicial<stockMinimo, activo:true}
   })
 }
+
+// RF-P2/P3: una edición no modifica existencias ni elimina referencias históricas.
+export async function editarProducto(rol: string, id: number, body: unknown) {
+  if (rol !== 'admin') throw new ErrorProducto(403, 'SIN_PERMISO', 'Se requiere rol administrador.')
+  const invalido = () => new ErrorProducto(422, 'VALIDACION', 'Revisá los campos del producto.')
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw invalido()
+  const datos = body as Record<string, unknown>
+  const campos = Object.keys(datos)
+  if (!campos.length || campos.some(c => !['codigo','descripcion','precio','categoriaId','stockMinimo','activo'].includes(c))) throw invalido()
+  return db.transaction(async tx => {
+    const [p] = await tx.select().from(productos).where(eq(productos.id,id))
+    if (!p) throw new ErrorProducto(404,'NO_ENCONTRADO','Producto inexistente.')
+    const cambios = {...{codigo:p.codigo, descripcion:p.nombre, categoriaId:p.categoria_id, precio:p.precio, stockMinimo:p.stock_minimo, activo:Boolean(p.activo)}, ...datos} as Record<string, unknown>
+    const {codigo, descripcion, categoriaId, precio, stockMinimo, activo} = cambios
+    if (typeof codigo !== 'string' || !codigo.trim() || typeof descripcion !== 'string' || !descripcion.trim() ||
+        !entero(categoriaId,1) || !entero(precio,1) || !entero(stockMinimo,0) || typeof activo !== 'boolean') throw invalido()
+    const [categoria] = await tx.select().from(categorias).where(eq(categorias.id,categoriaId))
+    if (!categoria || (!categoria.activa && (activo || categoriaId !== p.categoria_id))) {
+      throw new ErrorProducto(422,'VALIDACION','Seleccioná una categoría activa.')
+    }
+    const clave = codigo.trim().toUpperCase()
+    const [otro] = await tx.select({id:productos.id}).from(productos).where(eq(productos.codigo,clave))
+    if (otro && otro.id !== id) throw new ErrorProducto(409,'CODIGO_DUPLICADO','Ya existe ese código.')
+    await tx.update(productos).set({codigo:clave,nombre:descripcion.trim(),categoria_id:categoriaId,
+      precio,stock_minimo:stockMinimo,activo:Number(activo)}).where(eq(productos.id,id))
+    return {id,codigo:clave,descripcion:descripcion.trim(),categoria:{id:categoriaId,nombre:categoria.nombre},
+      precio,existencia:p.stock,stockMinimo,bajoMinimo:p.stock<stockMinimo,activo}
+  })
+}

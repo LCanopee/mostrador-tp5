@@ -8,7 +8,7 @@ function enteroPositivo(valor: string | null, predeterminado: number) {
 }
 
 // RF-P1: el total y los renglones de la página comparten los filtros.
-export async function catalogo(params: URLSearchParams) {
+export async function catalogo(params: URLSearchParams, rol = 'vendedor') {
   const texto = params.get('q')?.trim()
   const categoriaId = params.get('categoriaId')
   const pageSize = Math.min(100, enteroPositivo(params.get('pageSize'), 20))
@@ -17,13 +17,13 @@ export async function catalogo(params: URLSearchParams) {
     sql`instr(lower(${productos.codigo}), lower(${texto})) > 0`,
     sql`instr(lower(${productos.nombre}), lower(${texto})) > 0`
   ) : undefined
-  const filtro = and(eq(productos.activo, 1), coincide,
+  const filtro = and(rol === 'admin' && params.get('activo') === 'todos' ? undefined : eq(productos.activo, 1), coincide,
     categoriaId ? eq(productos.categoria_id, enteroPositivo(categoriaId, 0)) : undefined)
   const [conteo, data] = await db.batch([
     db.select({total: count()}).from(productos).where(filtro),
     db.select({
       id: productos.id, codigo: productos.codigo, nombre: productos.nombre,
-      precio: productos.precio, stock: productos.stock, minimo: productos.stock_minimo,
+      precio: productos.precio, stock: productos.stock, activo: productos.activo, minimo: productos.stock_minimo,
       categoria: categorias.nombre
     }).from(productos).innerJoin(categorias, eq(productos.categoria_id, categorias.id))
       .where(filtro).orderBy(asc(productos.nombre), asc(productos.id))
