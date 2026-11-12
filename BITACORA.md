@@ -129,3 +129,10 @@ Luis confirmó que el catálogo publicado abrió correctamente. Para localizar a
 Pregunta para la defensa: ¿qué cambiarías para buscar también por categoría? En lib/catalogo.ts, agregarías el nombre de la categoría a las columnas comparadas. La consulta ya relaciona productos con categorías.
 
 Pruebas locales: búsqueda por código con espacios y minúsculas, nombre parcial, texto inexistente, símbolo de porcentaje literal y catálogo completo. TypeScript pasó. Falta la prueba de la interfaz publicada con el buscador.
+
+### Categorías del catálogo (RF-P7)
+Desde Productos se abre Categorías. Ambos roles pueden consultar las categorías activas. El administrador puede crear, renombrar y desactivar. La API verifica el rol en el servidor. La baja cambia el campo activa para conservar las referencias históricas. Antes de confirmarla, el servicio busca productos activos de esa categoría dentro de la misma transacción.
+
+Verificación en una base de prueba aislada: alta, nombre duplicado, edición, rechazo al vendedor, bloqueo de baja con producto activo y baja permitida al desactivar el producto. TypeScript pasó. Pendiente la prueba visual publicada.
+
+Pregunta para la defensa: ¿qué pasa si se intenta desactivar una categoría que tiene un producto activo con stock cero? La API responde 409 CATEGORIA_EN_USO. La regla consulta el estado activo del producto independientemente de la cantidad disponible.
