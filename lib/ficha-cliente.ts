@@ -1,3 +1,4 @@
+import {numeroRecibo} from './pagos.ts'
 import {and,asc,desc,eq,gte,lt,sql} from 'drizzle-orm'
 import {db} from '../db/index.ts'
 import {clientes,facturas,movimientos_cuenta as mov} from '../db/schema.ts'
@@ -51,7 +52,7 @@ export async function cuentaCliente(id:number, params:URLSearchParams) {
   const movimientos=filas.map(m=>{
     saldo+=m.importe
     return {fecha:fechaISO(m.creado),tipo:m.importe<0?'credito':'debito',importe:Math.abs(m.importe),
-      descripcion:'Factura '+numeroFactura(m.factura_id),facturaId:m.factura_id,pagoId:null,saldo}
+      descripcion:m.pago_id ? 'Recibo '+numeroRecibo(m.pago_id) : 'Factura '+numeroFactura(m.factura_id!),facturaId:m.factura_id,pagoId:m.pago_id,saldo}
   })
   return {cliente,saldoAnterior:apertura.saldo,movimientos,saldo}
 }

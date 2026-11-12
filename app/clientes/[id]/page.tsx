@@ -1,3 +1,4 @@
+import Pago from './Pago'
 import Link from 'next/link'
 import {notFound,redirect} from 'next/navigation'
 import {fichaCliente,cuentaCliente} from '../../../lib/ficha-cliente'
@@ -39,14 +40,14 @@ export default async function Cliente({params,searchParams}:{params:Promise<{id:
     <h2>Últimas facturas</h2>
     {c.ultimasFacturas.length ? <table><thead><tr><th>Número</th><th>Fecha</th><th>Pago</th><th>Total</th></tr></thead>
       <tbody>{c.ultimasFacturas.map(f=><tr key={f.id}><td>{f.numeroFormateado}</td><td>{fecha(f.fecha)}</td><td>{f.formaPago.replaceAll('_',' ')}</td><td>{importe(f.total)}</td></tr>)}</tbody></table> : <p>Sin facturas.</p>}
-    <h2>Movimientos de cuenta corriente</h2>
+    <h2>Movimientos de cuenta corriente</h2>{c.cuentaCorriente && c.saldo>0 && <Pago id={id} saldo={c.saldo}/>}
     <form><label>Desde<input type="date" name="desde" defaultValue={filtro.get('desde') ?? ''}/></label>
       <label>Hasta<input type="date" name="hasta" defaultValue={filtro.get('hasta') ?? ''}/></label>
       <button>Filtrar</button> <Link href={'/clientes/'+id}>Limpiar fechas</Link></form>
     {aviso && <p role="alert">{aviso}</p>}
     {cuenta && <><p>Saldo anterior al período: {importe(cuenta.saldoAnterior)}</p>
       {cuenta.movimientos.length ? <table><thead><tr>{['Fecha','Descripción','Débito','Crédito','Saldo'].map(t=><th key={t}>{t}</th>)}</tr></thead>
-      <tbody>{cuenta.movimientos.slice((pagina-1)*20,pagina*20).map((m,i)=><tr key={i}><td>{fecha(m.fecha)}</td><td>{m.descripcion}</td><td>{m.tipo==='debito'?importe(m.importe):'—'}</td>
+      <tbody>{cuenta.movimientos.slice((pagina-1)*20,pagina*20).map((m,i)=><tr key={i}><td>{fecha(m.fecha)}</td><td>{m.pagoId ? <Link href={'/pagos/'+m.pagoId}>{m.descripcion}</Link> : m.descripcion}</td><td>{m.tipo==='debito'?importe(m.importe):'—'}</td>
         <td>{m.tipo==='credito'?importe(m.importe):'—'}</td><td>{importe(m.saldo)}</td></tr>)}</tbody></table> : <p>Sin movimientos en este período.</p>}
       {paginas>1 && <nav>{pagina>1 && <Link href={enlace(pagina-1)}>Anterior </Link>}Página {pagina} de {paginas} {pagina<paginas && <Link href={enlace(pagina+1)}>Siguiente</Link>}</nav>}
       <p>Saldo al cierre del período: {importe(cuenta.saldo)}</p></>}

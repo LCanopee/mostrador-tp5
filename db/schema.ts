@@ -77,11 +77,24 @@ export const movimientos_stock = sqliteTable('movimientos_stock', {
   observacion: text('observacion')
 })
 
+export const pagos = sqliteTable('pagos', {
+  id: integer('id').primaryKey({autoIncrement:true}),
+  creado: integer('creado').notNull().default(sql`(unixepoch())`),
+  cliente_id: integer('cliente_id').notNull().references(()=>clientes.id),
+  usuario_id: integer('usuario_id').notNull().references(()=>usuarios.id),
+  nombre_cliente: text('nombre_cliente').notNull(),
+  nombre_usuario: text('nombre_usuario').notNull(),
+  importe: integer('importe').notNull(),
+  medio: text('medio').notNull(),
+  observacion: text('observacion'),
+  saldo_cliente: integer('saldo_cliente').notNull()
+})
 export const movimientos_cuenta = sqliteTable('movimientos_cuenta', {
   id: integer('id').primaryKey({autoIncrement:true}),
   creado: integer('creado').notNull().default(sql`(unixepoch())`),
   cliente_id: integer('cliente_id').notNull().references(()=>clientes.id),
-  factura_id: integer('factura_id').notNull().references(()=>facturas.id),
+  factura_id: integer('factura_id').references(()=>facturas.id),
+  pago_id: integer('pago_id').unique().references(()=>pagos.id),
   importe: integer('importe').notNull()
 })
 

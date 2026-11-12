@@ -178,3 +178,10 @@ En Clientes se entra por el nombre para ver contacto, saldo actual, crédito dis
 Prueba aislada: 23 movimientos de $1. Con uno antes del período, 21 dentro y otro después, la apertura fue $1, el cierre $22 y el saldo actual $23. También verificamos el límite de seis facturas, el saldo cero de otro cliente, la fecha inválida y el cliente inexistente. TypeScript pasó. Queda verificar la pantalla en Vercel y agregar el registro de pagos y recibos.
 
 Pregunta para la defensa: ¿por qué el saldo de cierre puede diferir del saldo actual? El cierre considera movimientos hasta el final del período elegido. El saldo actual también incluye los posteriores.
+
+### Pagos y recibos (RF-C5)
+Desde la ficha de un cliente con deuda y cuenta habilitada se registra el importe, medio y observación. El servidor consulta el saldo y guarda pago y crédito en una transacción. El número de recibo deriva del identificador del pago. Se conservan los nombres y el saldo posterior para que al reimprimir el recibo muestre los datos del momento del pago.
+
+La migración 0003 conserva las referencias a facturas anteriores e incorpora referencias a pagos. En una base de prueba migramos una deuda existente de $100. Un pago de $40 dejó $60; un intento de $60,01 se rechazó; el pago final de $60 dejó saldo cero. Verificamos dos recibos consecutivos, tres movimientos y la consulta posterior del primer recibo con su saldo de $60. TypeScript pasó y la migración se aplicó en local. Pendientes la migración de Turso y la prueba visual en Vercel.
+
+Pregunta para la defensa: ¿por qué el recibo de un pago parcial sigue mostrando deuda aunque hoy el saldo sea cero? Registra el saldo en el instante de ese pago; la ficha calcula el actual sumando todos los movimientos.
