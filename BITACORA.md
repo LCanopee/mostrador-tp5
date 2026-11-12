@@ -117,3 +117,15 @@ Pregunta para la defensa: ¿cómo comprobarías que el stock actual coincide con
 Luis ejecutó en PowerShell `node --env-file=.env.turso scripts/migrate.ts` y, tras finalizar con éxito, `node --env-file=.env.turso scripts/seed.ts`. La terminal confirmó las migraciones y la inicialización del catálogo y los usuarios. El primer comando aplica los cambios de estructura y el segundo carga los datos iniciales. Elegimos el archivo de entorno de Turso para que ambos operen sobre mostrador-tp5. Queda pendiente probar el acceso desde la app publicada.
 
 Pregunta para la defensa: ¿cómo usa la aplicación el mismo esquema en tu PC y en internet? Las migraciones versionan la estructura. En db/index.ts el cliente usa TURSO_DATABASE_URL para seleccionar el destino y TURSO_AUTH_TOKEN para autenticarse en la base remota.
+
+### Prueba de acceso en producción
+Luis confirmó que pudo iniciar sesión como administrador en https://mostrador-tp5.vercel.app/ con la contraseña usada para inicializar el usuario en Turso. Queda por verificar el catálogo desde esa sesión.
+
+Pregunta para la defensa: ¿por qué editar ADMIN_PASSWORD después del primer seed no cambia la contraseña del usuario? El seed usa esa variable al crear la cuenta. Si el correo ya existe, conserva el registro. El inicio de sesión comprueba la contraseña contra el hash guardado en la tabla usuarios.
+
+### Búsqueda en el catálogo (RF-P1)
+Luis confirmó que el catálogo publicado abrió correctamente. Para localizar artículos por código o nombre, agregamos un formulario en Productos. Al buscar, el navegador envía el texto en el parámetro q de la URL. La página y GET /api/productos usan la misma función catalogo para filtrar los productos activos en la base de datos. Limpiar la búsqueda vuelve al listado completo.
+
+Pregunta para la defensa: ¿qué cambiarías para buscar también por categoría? En lib/catalogo.ts, agregarías el nombre de la categoría a las columnas comparadas. La consulta ya relaciona productos con categorías.
+
+Pruebas locales: búsqueda por código con espacios y minúsculas, nombre parcial, texto inexistente, símbolo de porcentaje literal y catálogo completo. TypeScript pasó. Falta la prueba de la interfaz publicada con el buscador.
