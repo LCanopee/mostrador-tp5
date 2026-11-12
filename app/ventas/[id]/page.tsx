@@ -24,6 +24,6 @@ export default async function Factura({params}:{params:Promise<{id:string}>}) {
     {pago.forma==='contado' && <p>Contado {pago.montoRecibido!==null && pago.vuelto!==null && <>· Recibido {pesos(pago.montoRecibido)} · Vuelto {pesos(pago.vuelto)}</>}</p>}
     {pago.forma==='tarjeta' && <p>Tarjeta {pago.tarjeta.tipo==='credito'?'de crédito':pago.tarjeta.tipo==='debito'?'de débito':''} {pago.tarjeta.marca} {pago.tarjeta.ultimos4 && ' · Terminada en '+pago.tarjeta.ultimos4}</p>}
     {pago.forma==='cuenta_corriente' && <p>Cuenta corriente {f.saldoCliente!=null && ' · Saldo después de la venta: '+pesos(f.saldoCliente)}</p>}
-    <nav><Imprimir texto="Imprimir factura"/> <Link href="/">Volver a ventas</Link></nav>
+    <nav><Imprimir texto="Imprimir factura"/> <Link href="/ventas">Ver todas las facturas</Link> · <Link href="/">Nueva venta</Link></nav>
   </main>
 }

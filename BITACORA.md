@@ -213,3 +213,10 @@ Después de confirmar una venta se puede abrir su factura desde Ventas o desde l
 Prueba aislada: emitimos con las tres formas de pago y verificamos vuelto, terminación de tarjeta con cero inicial y saldo de cuenta corriente. Modificamos producto, comprador y vendedor y el detalle de la primera factura siguió siendo idéntico. TypeScript pasó. Falta probar la vista previa de impresión publicada.
 
 Pregunta para la defensa: si cambia el domicilio del cliente o el precio del artículo mañana, ¿qué pasa con el comprobante emitido hoy? La reimpresión usa los datos copiados a la factura y a sus renglones al confirmar la venta.
+
+### Listado de facturas (RF-V8)
+El enlace Facturas abre el listado desde Ventas. Se puede buscar por número o comprador, combinar fechas, cliente, vendedor y forma de pago, y abrir el comprobante haciendo clic en su número. Los parámetros quedan en la URL. El total emitido suma todos los resultados antes de paginar. Esta versión trabaja con facturas emitidas; las anulaciones corresponden al próximo paso.
+
+Pruebas aisladas: cinco facturas con distintos horarios, compradores y vendedores. Al combinar filtros quedaron dos resultados y el total fue idéntico en ambas páginas. Verificamos búsqueda por número completo y nombre, límites del día argentino y fecha inválida. TypeScript pasó. No se modificó el esquema. Falta verificar el listado publicado.
+
+Pregunta para la defensa: ¿por qué se usa el inicio del día siguiente como límite exclusivo de Hasta? Así todo el día seleccionado queda incluido, aun cuando en UTC la venta figure con fecha del día siguiente.
