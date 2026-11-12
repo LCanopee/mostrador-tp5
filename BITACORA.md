@@ -136,3 +136,10 @@ Desde Productos se abre Categorías. Ambos roles pueden consultar las categoría
 Verificación en una base de prueba aislada: alta, nombre duplicado, edición, rechazo al vendedor, bloqueo de baja con producto activo y baja permitida al desactivar el producto. TypeScript pasó. Pendiente la prueba visual publicada.
 
 Pregunta para la defensa: ¿qué pasa si se intenta desactivar una categoría que tiene un producto activo con stock cero? La API responde 409 CATEGORIA_EN_USO. La regla consulta el estado activo del producto independientemente de la cantidad disponible.
+
+### Filtro por categoría y paginación (RF-P1)
+El catálogo combina el texto y la categoría para ambos roles. La URL conserva los filtros al navegar y el formulario vuelve a la primera página al buscar. El servicio cuenta y consulta los productos con las mismas condiciones. Ordena por nombre e identificador para que dos nombres iguales tengan un orden estable. La API devuelve data, page, pageSize y total, con 20 productos por defecto y un máximo de 100 por página. Ventas recorre las páginas para seguir ofreciendo todo el catálogo.
+
+Prueba local con 31 productos: primera página de 20, segunda sin identificadores repetidos, combinación de categoría y código, límite de tamaño y página fuera de rango. TypeScript pasó. Falta confirmar el recorrido publicado.
+
+Pregunta para la defensa: ¿por qué se cuenta después de aplicar los filtros? El total permite calcular cuántas páginas tienen resultados para esa búsqueda.

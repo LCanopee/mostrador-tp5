@@ -23,12 +23,21 @@ export default function App(){
   async function logout(){try{await api('sesion','DELETE',{});setUser(null);setError('')}catch(err){setError(err instanceof Error?err.message:'Error inesperado')}}
   return <><aside><b>mostrador</b><small>Gestión comercial</small>{user&&<p>Ventas</p>}</aside><main>{user?<><header><a href="/productos">Catálogo de productos</a> · {user.nombre} <button onClick={logout}>Cerrar sesión</button></header><Venta/></>:<><h1>Iniciar sesión</h1><form onSubmit={login}><label>Email<input type="email" name="acceso" autoComplete="username" required/></label><label>Contraseña<input type="password" name="contrasena" autoComplete="current-password" required/></label><button disabled={busy}>Ingresar</button></form></>}{error&&<p role="alert">{error}</p>}</main></>
 }
+// RF-V3: el selector de venta conserva todos los productos disponibles.
+async function productosParaVenta() {
+  const productos: Producto[] = []
+  for (let page = 1; ; page++) {
+    const lote = await api<{data: Producto[]; total: number}>('productos?pageSize=100&page=' + page)
+    productos.push(...lote.data)
+    if (!lote.data.length || productos.length >= lote.total) return productos
+  }
+}
 function Venta(){
   const [products,setProducts]=useState<Producto[]>([]),[clients,setClients]=useState<Cliente[]>([]),[selected,select]=useState('')
   const [cart,setCart]=useState<Record<number,number>>({}),[client,setClient]=useState(''),[pay,setPay]=useState('CONTADO')
   const [message,notify]=useState(''),[busy,setBusy]=useState(false)
   async function load(){
-    const [p,c]=await Promise.all([api<Producto[]>('productos'),api<Cliente[]>('clientes')])
+    const [p,c]=await Promise.all([productosParaVenta(),api<Cliente[]>('clientes')])
     setProducts(p);setClients(c);select(String(p[0]?.id??''))
   }
   useEffect(()=>{load().catch(err=>notify(err instanceof Error?err.message:'Error inesperado'))},[])

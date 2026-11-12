@@ -3,7 +3,7 @@ import {currentUser} from '../../../lib/session'
 import {catalogo} from '../../../lib/catalogo'
 export async function GET(req: Request){
   if(!await currentUser())return Response.json({mensaje:'Iniciá sesión'},{status:401})
-  return Response.json(await catalogo(new URL(req.url).searchParams.get('q') ?? ''))
+  return Response.json(await catalogo(new URL(req.url).searchParams))
 }
 
 export async function POST(req: Request) {
