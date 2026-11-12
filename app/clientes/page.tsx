@@ -10,7 +10,7 @@ export default async function Clientes({searchParams}:{searchParams:Promise<Reco
   if (!await currentUser()) redirect('/')
   const entrada = await searchParams
   const params = new URLSearchParams()
-  for (const campo of ['q','page','conDeuda','orden']) {
+  for (const campo of ['q','page','conDeuda','orden','activo']) {
     const valor = entrada[campo]
     if (typeof valor === 'string' && valor.trim()) params.set(campo,valor.trim())
   }
@@ -24,6 +24,8 @@ export default async function Clientes({searchParams}:{searchParams:Promise<Reco
     <Link href="/">Volver a ventas</Link><h1>Clientes</h1><Formulario/>
     <form method="get" action="/clientes" role="search" key={params.toString()}>
       <label>Nombre o documento<input type="search" name="q" defaultValue={params.get('q') ?? ''}/></label>
+      <label>Estado<select name="activo" defaultValue={params.get('activo') ?? 'true'}>
+        <option value="true">Activos</option><option value="false">Inactivos</option><option value="todos">Todos los estados</option></select></label>
       <label>Mostrar<select name="conDeuda" defaultValue={params.get('conDeuda') ?? 'false'}>
         <option value="false">Todos los clientes</option><option value="true">Clientes con deuda</option></select></label>
       {params.has('orden') && <input type="hidden" name="orden" value={params.get('orden')!}/>}
@@ -31,7 +33,7 @@ export default async function Clientes({searchParams}:{searchParams:Promise<Reco
     </form>
     {totalAdeudado !== undefined && <p>Total adeudado: <strong>{moneda.format(totalAdeudado/100)}</strong></p>}
     {data.length ? <section><table><thead><tr><th>Nombre</th><th>Documento</th><th>Saldo</th></tr></thead>
-      <tbody>{data.map(c=><tr key={c.id}><td><Link href={'/clientes/'+c.id}>{c.nombre}</Link></td><td>{c.documento}</td><td>{moneda.format(c.saldo/100)}</td></tr>)}</tbody>
+      <tbody>{data.map(c=><tr key={c.id}><td><Link href={'/clientes/'+c.id}>{c.nombre}</Link>{!c.activo && ' · Inactivo'}</td><td>{c.documento}</td><td>{moneda.format(c.saldo/100)}</td></tr>)}</tbody>
     </table></section> : <p>No hay clientes en esta página con los filtros seleccionados.</p>}
     <nav aria-label="Páginas de clientes">{page>1 && <Link href={enlace(page-1)}>Anterior </Link>}
       {data.length>0 && <span>Página {page} de {Math.ceil(total/pageSize)} </span>}

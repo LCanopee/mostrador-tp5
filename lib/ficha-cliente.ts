@@ -21,7 +21,7 @@ export async function fichaCliente(id:number) {
     db.select().from(facturas).where(eq(facturas.cliente_id,id)).orderBy(desc(facturas.creado),desc(facturas.id)).limit(6)
   ])
   if (!c) throw new ErrorCliente(404,'NO_ENCONTRADO','Cliente inexistente.')
-  return {id:c.id,nombre:c.nombre,tipoDoc:c.tipo_doc,nroDoc:c.documento,domicilio:c.domicilio,telefono:c.telefono,email:c.email,
+  return {id:c.id,activo:Boolean(c.activo),nombre:c.nombre,tipoDoc:c.tipo_doc,nroDoc:c.documento,domicilio:c.domicilio,telefono:c.telefono,email:c.email,
     cuentaCorriente:Boolean(c.habilitado),limiteCredito:c.limite_credito,saldo:cuenta.saldo,
     disponible:c.limite_credito===null ? null : c.limite_credito-cuenta.saldo,
     ultimasFacturas:ventas.map(f=>({id:f.id,numeroFormateado:numeroFactura(f.id),fecha:fechaISO(f.creado),total:f.total,formaPago:f.forma_pago}))}

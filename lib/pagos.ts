@@ -28,7 +28,7 @@ export async function registrarPago(clienteId:number,usuario:{id:number;nombre:s
   return db.transaction(async tx=>{
     const [c]=await tx.select().from(clientes).where(eq(clientes.id,clienteId))
     if (!c) throw new ErrorCliente(404,'NO_ENCONTRADO','Cliente inexistente.')
-    if (!c.habilitado) throw new ErrorCliente(422,'CUENTA_CORRIENTE_NO_HABILITADA','Cuenta corriente deshabilitada.')
+    if (!c.activo || !c.habilitado) throw new ErrorCliente(422,'CUENTA_CORRIENTE_NO_HABILITADA','Cuenta corriente deshabilitada.')
     const [cuenta]=await tx.select({saldo:sql<number>`coalesce(sum(${movimientos_cuenta.importe}),0)`})
       .from(movimientos_cuenta).where(eq(movimientos_cuenta.cliente_id,clienteId))
     if (importe>cuenta.saldo) throw new ErrorCliente(422,'PAGO_SUPERA_DEUDA','El pago supera el saldo adeudado.')

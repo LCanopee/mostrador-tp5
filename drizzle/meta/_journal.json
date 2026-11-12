@@ -29,6 +29,13 @@
       "when": 1794497319697,
       "tag": "0003_pagos",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794509103387,
+      "tag": "0004_estado_cliente",
+      "breakpoints": true
     }
   ]
 }

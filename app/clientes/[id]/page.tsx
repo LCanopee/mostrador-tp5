@@ -1,4 +1,5 @@
 import Pago from './Pago'
+import Estado from './Estado'
 import Link from 'next/link'
 import {notFound,redirect} from 'next/navigation'
 import {fichaCliente,cuentaCliente} from '../../../lib/ficha-cliente'
@@ -32,7 +33,7 @@ export default async function Cliente({params,searchParams}:{params:Promise<{id:
     return '/clientes/'+id+'?'+p.toString()
   }
   return <><aside><b>Mostrador</b><p>Clientes</p></aside><main><Link href="/clientes">Volver a clientes</Link>
-    <h1>{c.nombre}</h1><p>{c.tipoDoc} {c.nroDoc}</p>
+    <h1>{c.nombre}</h1><Estado id={id} activo={c.activo}/><p>{c.tipoDoc} {c.nroDoc}</p>
     <p>{[c.domicilio,c.telefono,c.email].filter(Boolean).join(' · ')}</p>
     <p>Cuenta corriente {c.cuentaCorriente?'habilitada':'deshabilitada'} · Saldo actual <strong>{importe(c.saldo)}</strong></p>
     {c.limiteCredito!==null && <p>Límite {importe(c.limiteCredito)} · Disponible {importe(c.disponible!)}</p>}
@@ -40,7 +41,7 @@ export default async function Cliente({params,searchParams}:{params:Promise<{id:
     <h2>Últimas facturas</h2>
     {c.ultimasFacturas.length ? <table><thead><tr><th>Número</th><th>Fecha</th><th>Pago</th><th>Total</th></tr></thead>
       <tbody>{c.ultimasFacturas.map(f=><tr key={f.id}><td>{f.numeroFormateado}</td><td>{fecha(f.fecha)}</td><td>{f.formaPago.replaceAll('_',' ')}</td><td>{importe(f.total)}</td></tr>)}</tbody></table> : <p>Sin facturas.</p>}
-    <h2>Movimientos de cuenta corriente</h2>{c.cuentaCorriente && c.saldo>0 && <Pago id={id} saldo={c.saldo}/>}
+    <h2>Movimientos de cuenta corriente</h2>{c.activo && c.cuentaCorriente && c.saldo>0 && <Pago id={id} saldo={c.saldo}/>}
     <form><label>Desde<input type="date" name="desde" defaultValue={filtro.get('desde') ?? ''}/></label>
       <label>Hasta<input type="date" name="hasta" defaultValue={filtro.get('hasta') ?? ''}/></label>
       <button>Filtrar</button> <Link href={'/clientes/'+id}>Limpiar fechas</Link></form>

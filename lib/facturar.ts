@@ -11,6 +11,7 @@ export async function facturar(userId:number,body:Record<string,unknown>){
   if(!Array.isArray(lineas)||!lineas.length||lineas.length>200||lineas.some(l=>!entero(l?.id)||!entero(l?.cantidad))||new Set(lineas.map(l=>l.id)).size!==lineas.length)throw new ErrorVenta(422,'Revisá los renglones')
   return db.transaction(async tx=>{
     const [cliente]=clienteId?await tx.select().from(clientes).where(eq(clientes.id,clienteId)):[]
+    if(cliente && !cliente.activo) throw new ErrorVenta(422,'El cliente está dado de baja.')
     if(clienteId&&!cliente)throw new ErrorVenta(404,'Cliente inexistente')
     if(formaPago==='CUENTA_CORRIENTE'&&!cliente?.habilitado)throw new ErrorVenta(422,'Seleccioná un cliente habilitado')
     const [venta]=await tx.insert(facturas).values({cliente_id:clienteId,usuario_id:userId,nombre_cliente:cliente?.nombre??'Consumidor final',forma_pago:formaPago,total:0}).returning()

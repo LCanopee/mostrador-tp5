@@ -15,11 +15,12 @@ export async function listarClientes(params:URLSearchParams) {
   const page = positivo(params.get('page'),1)
   const pageSize = Math.min(100,positivo(params.get('pageSize'),20))
   const cuentas = db.select({
-    id:clientes.id, nombre:clientes.nombre, documento:clientes.documento,
+    id:clientes.id, nombre:clientes.nombre, documento:clientes.documento, activo:clientes.activo,
     saldo:sql<number>`coalesce(sum(${movimientos_cuenta.importe}), 0)`.as('saldo')
   }).from(clientes).leftJoin(movimientos_cuenta,eq(clientes.id,movimientos_cuenta.cliente_id))
     .groupBy(clientes.id).as('cuentas')
-  const filtro = and(conDeuda ? gt(cuentas.saldo,0) : undefined, q ? or(
+  const estado = params.get('activo')
+  const filtro = and(estado === 'todos' ? undefined : eq(cuentas.activo,estado === 'false' ? 0 : 1),conDeuda ? gt(cuentas.saldo,0) : undefined, q ? or(
     sql`instr(lower(${cuentas.nombre}),lower(${q})) > 0`,
     documento ? sql`instr(replace(replace(replace(${cuentas.documento},'.',''),'-',''),' ',''),${documento}) > 0` : undefined
   ) : undefined)

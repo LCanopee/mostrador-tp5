@@ -19,7 +19,7 @@ export async function guardarCliente(body:unknown,id?:number) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) throw invalido('Se esperaba un cliente.')
   const d = body as Record<string,unknown>
   const campos = Object.keys(d)
-  if (!campos.length || campos.some(k=>!['tipoDoc','nroDoc','nombre','telefono','domicilio','email','cuentaCorriente','limiteCredito'].includes(k))) throw invalido('Campos de cliente inválidos.')
+  if (!campos.length || campos.some(k=>!(id !== undefined && k === 'activo') && !['tipoDoc','nroDoc','nombre','telefono','domicilio','email','cuentaCorriente','limiteCredito'].includes(k))) throw invalido('Campos de cliente inválidos.')
   return db.transaction(async tx=>{
     const [previo] = id === undefined ? [] : await tx.select().from(clientes).where(eq(clientes.id,id))
     if (id !== undefined && !previo) throw new ErrorCliente(404,'NO_ENCONTRADO','Cliente inexistente.')
@@ -30,6 +30,8 @@ export async function guardarCliente(body:unknown,id?:number) {
     const email = textoOpcional(valor('email',previo?.email))
     const domicilio = textoOpcional(valor('domicilio',previo?.domicilio))
     const telefono = textoOpcional(valor('telefono',previo?.telefono))
+    const activo = valor('activo', previo ? Boolean(previo.activo) : true)
+    if (typeof activo !== 'boolean') throw invalido('Estado de cliente inválido.')
     const habilitado = valor('cuentaCorriente',Boolean(previo?.habilitado))
     const limite = valor('limiteCredito',previo?.limite_credito ?? null)
     if (!nombre) throw invalido('Ingresá el nombre o razón social.')
@@ -38,13 +40,13 @@ export async function guardarCliente(body:unknown,id?:number) {
     if (typeof habilitado !== 'boolean' || (limite !== null && (typeof limite !== 'number' || !Number.isSafeInteger(limite) || limite<0))) throw invalido('Revisá la cuenta corriente y su límite.')
     const [otro] = await tx.select({id:clientes.id}).from(clientes).where(sql`replace(replace(replace(${clientes.documento},'.',''),'-',''),' ','') = ${documento}`)
     if (otro && otro.id !== id) throw new ErrorCliente(409,'DOCUMENTO_DUPLICADO','Ya existe un cliente con ese documento.')
-    if (previo?.habilitado && !habilitado) {
+    if (previo && (!activo || (previo.habilitado && !habilitado))) {
       const [cuenta] = await tx.select({saldo:sql<number>`coalesce(sum(${movimientos_cuenta.importe}),0)`}).from(movimientos_cuenta).where(eq(movimientos_cuenta.cliente_id,previo.id))
       if (cuenta.saldo !== 0) throw new ErrorCliente(422,'SALDO_PENDIENTE','El cliente tiene saldo pendiente.')
     }
-    const datos = {tipo_doc:tipoDoc,documento,nombre,email,domicilio,telefono,habilitado:Number(habilitado),limite_credito:limite}
+    const datos = {activo:Number(activo),tipo_doc:tipoDoc,documento,nombre,email,domicilio,telefono,habilitado:Number(habilitado),limite_credito:limite}
     const [fila] = id === undefined ? await tx.insert(clientes).values(datos).returning({id:clientes.id}) :
       await tx.update(clientes).set(datos).where(eq(clientes.id,id)).returning({id:clientes.id})
-    return {id:fila.id,tipoDoc,nroDoc:documento,nombre,email,domicilio,telefono,cuentaCorriente:habilitado,limiteCredito:limite}
+    return {id:fila.id,activo,tipoDoc,nroDoc:documento,nombre,email,domicilio,telefono,cuentaCorriente:habilitado,limiteCredito:limite}
   })
 }

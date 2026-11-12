@@ -185,3 +185,10 @@ Desde la ficha de un cliente con deuda y cuenta habilitada se registra el import
 La migración 0003 conserva las referencias a facturas anteriores e incorpora referencias a pagos. En una base de prueba migramos una deuda existente de $100. Un pago de $40 dejó $60; un intento de $60,01 se rechazó; el pago final de $60 dejó saldo cero. Verificamos dos recibos consecutivos, tres movimientos y la consulta posterior del primer recibo con su saldo de $60. TypeScript pasó y la migración se aplicó en local. Pendientes la migración de Turso y la prueba visual en Vercel.
 
 Pregunta para la defensa: ¿por qué el recibo de un pago parcial sigue mostrando deuda aunque hoy el saldo sea cero? Registra el saldo en el instante de ese pago; la ficha calcula el actual sumando todos los movimientos.
+
+### Baja lógica de clientes (RF-C7)
+La migración 0004 agrega el estado activo, inicialmente verdadero para las cuentas existentes. En la ficha se confirma la baja. La operación verifica el saldo dentro de la misma transacción y conserva el cliente, sus facturas y sus pagos. El listado permite consultar inactivos y volver a activarlos. La venta también comprueba el estado al confirmar para cubrir carritos abiertos antes de la baja.
+
+Prueba en base aislada: una venta a crédito impidió la baja; al pagar la deuda se pudo desactivar. El cliente desapareció de la selección activa, el historial y el recibo siguieron accesibles, una venta directa fue rechazada y al reactivar se pudo volver a vender. TypeScript pasó y la migración se aplicó en SQLite local. Falta aplicarla en Turso y verificar Vercel.
+
+Pregunta para la defensa: ¿por qué validar el estado en el servidor si el cliente ya no aparece en el selector? El usuario puede haber abierto la venta antes de la baja. La validación al confirmar aplica el estado vigente.
