@@ -4,7 +4,7 @@ import React,{useEffect,useState} from 'react'
 
 type Producto={id:number;codigo:string;nombre:string;precio:number;stock:number}
 type Cliente={id:number;nombre:string}
-type Usuario={nombre:string}
+type Usuario={nombre:string;rol:string}
 const pesos=(n:number)=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS'}).format(n/100)
 async function api<T=unknown>(ruta:string,method='GET',body?:unknown):Promise<T>{
   const res=await fetch('/api/'+ruta,{method,headers:method==='GET'?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)})
@@ -21,7 +21,7 @@ export default function App(){
     try{setUser(await api<Usuario>('sesion','POST',data))}catch(err){setError(err instanceof Error?err.message:'Error inesperado')}finally{setBusy(false)}
   }
   async function logout(){try{await api('sesion','DELETE',{});setUser(null);setError('')}catch(err){setError(err instanceof Error?err.message:'Error inesperado')}}
-  return <><aside><b>mostrador</b><small>Gestión comercial</small>{user&&<p>Ventas</p>}</aside><main>{user?<><header><a href="/productos">Catálogo de productos</a> · {user.nombre} <button onClick={logout}>Cerrar sesión</button></header><Venta/></>:<><h1>Iniciar sesión</h1><form onSubmit={login}><label>Email<input type="email" name="acceso" autoComplete="username" required/></label><label>Contraseña<input type="password" name="contrasena" autoComplete="current-password" required/></label><button disabled={busy}>Ingresar</button></form></>}{error&&<p role="alert">{error}</p>}</main></>
+  return <><aside><b>mostrador</b><small>Gestión comercial</small>{user&&<p>Ventas</p>}</aside><main>{user?<><header>{user.rol==='admin' && <><a href="/usuarios">Usuarios</a> · </>}<a href="/productos">Catálogo de productos</a> · {user.nombre} <button onClick={logout}>Cerrar sesión</button></header><Venta/></>:<><h1>Iniciar sesión</h1><form onSubmit={login}><label>Email<input type="email" name="acceso" autoComplete="username" required/></label><label>Contraseña<input type="password" name="contrasena" autoComplete="current-password" required/></label><button disabled={busy}>Ingresar</button></form></>}{error&&<p role="alert">{error}</p>}</main></>
 }
 // RF-V3: el selector de venta conserva todos los productos disponibles.
 async function productosParaVenta() {

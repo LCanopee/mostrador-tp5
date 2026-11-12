@@ -24,7 +24,7 @@ export default async function Productos({searchParams}: {searchParams: Promise<R
     return '/productos?' + destino.toString()
   }
   const moneda=new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS'})
-  return <><aside><b>Mostrador</b><p>Productos</p></aside><main><Link href="/">Volver a ventas</Link><h1>Catálogo</h1><p><Link href="/productos/categorias">Categorías</Link></p>{usuario.rol==='admin' && <AltaProducto categorias={opciones}/>}
+  return <><aside><b>Mostrador</b><p>Productos</p>{usuario.rol==='admin' && <Link style={{color:'white'}} href="/usuarios">Usuarios</Link>}</aside><main><Link href="/">Volver a ventas</Link><h1>Catálogo</h1><p><Link href="/productos/categorias">Categorías</Link></p>{usuario.rol==='admin' && <AltaProducto categorias={opciones}/>}
     <form action="/productos" method="get" role="search" key={JSON.stringify([busqueda, categoriaId, params.get('activo')])}>
       <label htmlFor="busqueda">Buscar por código o nombre</label>
       <input type="search" id="busqueda" name="q" defaultValue={busqueda} placeholder="Ej. CAF-001 o arroz" />

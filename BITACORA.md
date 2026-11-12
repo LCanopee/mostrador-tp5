@@ -150,3 +150,10 @@ En la ficha, el administrador puede editar código, descripción, categoría, pr
 En una base aislada emitimos una venta, cambiamos el precio y la descripción, dimos el producto de baja y comprobamos que el renglón de factura conservó los valores originales. El historial y el stock se conservaron, la siguiente venta fue rechazada y la reactivación volvió a permitirla. Verificamos además código duplicado, rechazo al vendedor y rechazo de cambios directos de existencia. TypeScript pasó. Pendiente prueba visual en Vercel.
 
 Pregunta para la defensa: ¿cómo se conserva el precio original de una factura al editar o desactivar un producto? Al confirmar la venta se copian precio y descripción al renglón de factura. La baja lógica mantiene el producto y las referencias de los movimientos.
+
+### Gestión de usuarios (RF-U4)
+Desde Ventas o Productos, el administrador abre Usuarios para crear cuentas, editar nombre y email, asignar un rol y cambiar el estado. El listado permite buscar por nombre o email y filtrar por estado. Se conserva el identificador del usuario para que sus operaciones anteriores sigan vinculadas. La baja y la eliminación de sus sesiones se confirman en la misma transacción. El administrador tiene protegidos su propio rol y estado.
+
+Pruebas con una base aislada: contraseña inicial verificada contra su hash, rechazo de email duplicado y llamadas de vendedor, protección de la cuenta propia, cambio de rol, baja con revocación de sesión, búsqueda por estado y reactivación. TypeScript pasó. Pendiente verificación visual en Vercel.
+
+Pregunta para la defensa: ¿qué pasa si un vendedor ya tiene una pestaña abierta cuando se desactiva su cuenta? La pantalla puede seguir mostrando lo que tenía cargado. La próxima operación protegida requiere una sesión válida y un usuario activo.
