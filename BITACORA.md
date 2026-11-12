@@ -171,3 +171,10 @@ Desde Clientes se crea una cuenta de cliente y se edita entrando por el nombre. 
 Prueba en base aislada: creamos un CUIT con guiones, rechazamos el mismo número sin guiones y editamos solo el teléfono. Una venta a crédito por el límite exacto pasó; una venta posterior se revirtió y quedó una sola factura. Con deuda se rechazó deshabilitar la cuenta corriente. TypeScript pasó y se aplicó la migración local.
 
 Pregunta para la defensa: ¿por qué validar el límite dentro de la transacción de venta? La deuda y la venta deben confirmarse juntas. Si se supera el límite también se revierten los cambios de stock y el comprobante.
+
+### Ficha y consulta de la cuenta corriente (RF-C3 y RF-C4)
+En Clientes se entra por el nombre para ver contacto, saldo actual, crédito disponible cuando hay límite y seis facturas recientes. El historial de cuenta calcula el saldo de apertura sumando los movimientos anteriores a Desde. Después recorre los del período por fecha e identificador. Hasta incluye todo el día argentino. La ficha divide el resultado en páginas de veinte filas después de calcular los saldos.
+
+Prueba aislada: 23 movimientos de $1. Con uno antes del período, 21 dentro y otro después, la apertura fue $1, el cierre $22 y el saldo actual $23. También verificamos el límite de seis facturas, el saldo cero de otro cliente, la fecha inválida y el cliente inexistente. TypeScript pasó. Queda verificar la pantalla en Vercel y agregar el registro de pagos y recibos.
+
+Pregunta para la defensa: ¿por qué el saldo de cierre puede diferir del saldo actual? El cierre considera movimientos hasta el final del período elegido. El saldo actual también incluye los posteriores.
