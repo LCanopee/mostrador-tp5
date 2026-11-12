@@ -36,6 +36,11 @@ export const clientes = sqliteTable('clientes', {
   creado: integer('creado').notNull().default(sql`(unixepoch())`),
   nombre: text('nombre').notNull(),
   documento: text('documento').notNull().unique(),
+  tipo_doc: text('tipo_doc').notNull().default('DNI'),
+  domicilio: text('domicilio'),
+  telefono: text('telefono'),
+  email: text('email'),
+  limite_credito: integer('limite_credito'),
   habilitado: integer('habilitado').notNull().default(1)
 })
 

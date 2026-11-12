@@ -15,6 +15,13 @@
       "when": 1794449728107,
       "tag": "0001_observacion_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794496737199,
+      "tag": "0002_datos_cliente",
+      "breakpoints": true
     }
   ]
 }

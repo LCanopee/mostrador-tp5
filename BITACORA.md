@@ -164,3 +164,10 @@ Desde Ventas se abre Clientes para consultar nombre, documento y saldo. El servi
 Pruebas en una base aislada: clientes sin movimientos, dos ventas en cuenta corriente a distintos clientes, orden por deuda, búsqueda por nombre y documento, consulta sin resultados y total mantenido al cambiar de página. TypeScript pasó. Pendiente prueba visual en Vercel.
 
 Pregunta para la defensa: si hay veinte deudores y solo se muestran diez por página, ¿qué representa el total? Suma los saldos de todos los clientes que cumplen los filtros.
+
+### Alta y edición de clientes (RF-C2)
+Desde Clientes se crea una cuenta de cliente y se edita entrando por el nombre. La API exige sesión y admite ambos roles. La migración 0002 agrega tipo de documento, datos de contacto y límite de crédito opcional. Los registros anteriores conservan su identificador y reciben DNI como tipo predeterminado. El servidor normaliza los documentos y controla duplicados.
+
+Prueba en base aislada: creamos un CUIT con guiones, rechazamos el mismo número sin guiones y editamos solo el teléfono. Una venta a crédito por el límite exacto pasó; una venta posterior se revirtió y quedó una sola factura. Con deuda se rechazó deshabilitar la cuenta corriente. TypeScript pasó y se aplicó la migración local.
+
+Pregunta para la defensa: ¿por qué validar el límite dentro de la transacción de venta? La deuda y la venta deben confirmarse juntas. Si se supera el límite también se revierten los cambios de stock y el comprobante.

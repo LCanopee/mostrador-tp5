@@ -1,5 +1,5 @@
 import {moverStock} from './stock.ts'
-import {eq} from 'drizzle-orm'
+import {eq, sql} from 'drizzle-orm'
 import {db} from '../db/index.ts'
 import {clientes,facturas,factura_items,movimientos_cuenta} from '../db/schema.ts'
 export class ErrorVenta extends Error{status:number;constructor(status:number,message:string){super(message);this.status=status}}
@@ -20,6 +20,10 @@ export async function facturar(userId:number,body:Record<string,unknown>){
       total+=p.precio*cantidad
       if(!Number.isSafeInteger(total))throw new ErrorVenta(422,'Importe fuera de rango')
       await tx.insert(factura_items).values({factura_id:venta.id,producto_id:id,cantidad,precio:p.precio,descripcion:p.nombre})
+    }
+    if (formaPago==='CUENTA_CORRIENTE' && cliente && cliente.limite_credito !== null) {
+      const [cuenta] = await tx.select({saldo:sql<number>`coalesce(sum(${movimientos_cuenta.importe}),0)`}).from(movimientos_cuenta).where(eq(movimientos_cuenta.cliente_id,cliente.id))
+      if (cuenta.saldo + total > cliente.limite_credito) throw new ErrorVenta(422,'La venta supera el límite de crédito del cliente.')
     }
     await tx.update(facturas).set({total}).where(eq(facturas.id,venta.id))
     if(formaPago==='CUENTA_CORRIENTE'&&clienteId)await tx.insert(movimientos_cuenta).values({cliente_id:clienteId,factura_id:venta.id,importe:total})
