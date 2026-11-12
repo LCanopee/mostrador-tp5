@@ -42,6 +42,7 @@ function Venta(){
     setProducts(p);setClients(c);select(String(p[0]?.id??''))
   }
   useEffect(()=>{load().catch(err=>notify(err instanceof Error?err.message:'Error inesperado'))},[])
+  const [ultimaFactura,setUltimaFactura]=useState<number|null>(null)
   const [efectivo,setEfectivo]=useState('')
   const [tipo,setTipo]=useState('debito')
   const [marca,setMarca]=useState('')
@@ -83,6 +84,7 @@ function Venta(){
     try{
       const sale=await api<{numero:number;total:number;vuelto?:number}>('ventas','POST',{clienteId:client?Number(client):null,formaPago:pay,...(pay==='CONTADO' ? {montoRecibido:recibido} : pay==='TARJETA' ? {tarjeta:{tipo,marca,ultimos4}} : {}),lineas:lines.map(p=>({id:p.id,cantidad:cart[p.id]}))})
       setEfectivo('');setTipo('debito');setMarca('');setUltimos4('');setCart({});setClient('');setPay('CONTADO');buscarCliente('');buscarProducto('');cambiarUnidades('1')
+      setUltimaFactura(sale.numero)
       const receipt='Comprobante #'+sale.numero+' · '+pesos(sale.total)+(sale.vuelto!==undefined?' · Vuelto '+pesos(sale.vuelto):'')
       notify(receipt)
       try{await load()}catch{notify(receipt+' · Recargá para actualizar el catálogo.')}
@@ -117,5 +119,5 @@ function Venta(){
       <label>Últimos cuatro dígitos<input inputMode="numeric" autoComplete="off" maxLength={4} value={ultimos4} onChange={e=>setUltimos4(e.target.value.replace(/\D/g,''))}/></label></>}
     {pay==='CUENTA_CORRIENTE' && comprador && <><p>Saldo actual: {pesos(comprador.saldo)} · Saldo con esta venta: {pesos(comprador.saldo+total)}</p>
       <p>{disponible===null?'Sin límite de crédito': 'Crédito disponible: '+pesos(disponible)}</p>{!pagoValido && <p>El total supera el crédito disponible.</p>}</>}
-    <button disabled={!lines.length || !pagoValido} onClick={confirm}>Confirmar venta</button></section></div></fieldset><p role="status">{message}</p></>
+    <button disabled={!lines.length || !pagoValido} onClick={confirm}>Confirmar venta</button></section></div></fieldset><p role="status">{message}</p>{ultimaFactura && <a href={'/ventas/'+ultimaFactura}>Ver e imprimir factura {ultimaFactura}</a>}</>
 }

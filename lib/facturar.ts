@@ -1,7 +1,7 @@
 import {moverStock} from './stock.ts'
 import {eq, sql} from 'drizzle-orm'
 import {db} from '../db/index.ts'
-import {clientes,facturas,factura_items,movimientos_cuenta} from '../db/schema.ts'
+import {usuarios,clientes,facturas,factura_items,movimientos_cuenta} from '../db/schema.ts'
 export class ErrorVenta extends Error{status:number;constructor(status:number,message:string){super(message);this.status=status}}
 function entero(n:unknown):n is number{return typeof n==='number'&&Number.isSafeInteger(n)&&n>0}
 // RF-V6: el precio se toma del catálogo; un fallo revierte toda la operación.
@@ -38,21 +38,24 @@ export async function facturar(userId:number,body:Record<string,unknown>){
     if(cliente && !cliente.activo) throw new ErrorVenta(422,'El cliente está dado de baja.')
     if(clienteId&&!cliente)throw new ErrorVenta(404,'Cliente inexistente')
     if(formaPago==='CUENTA_CORRIENTE'&&!cliente?.habilitado)throw new ErrorVenta(422,'Seleccioná un cliente habilitado')
-    const [venta]=await tx.insert(facturas).values({cliente_id:clienteId,usuario_id:userId,nombre_cliente:cliente?.nombre??'Consumidor final',forma_pago:formaPago,total:0}).returning()
+    const [vendedor]=await tx.select({nombre:usuarios.nombre}).from(usuarios).where(eq(usuarios.id,userId))
+    const [venta]=await tx.insert(facturas).values({cliente_id:clienteId,usuario_id:userId,nombre_cliente:cliente?.nombre??'Consumidor final',nombre_vendedor:vendedor.nombre,tipo_doc_cliente:cliente?.tipo_doc,documento_cliente:cliente?.documento,domicilio_cliente:cliente?.domicilio,forma_pago:formaPago,total:0}).returning()
     let total=0
     for(const {id,cantidad} of lineas){
       const {producto:p}=await moverStock(tx,{productoId:id,usuarioId:userId,facturaId:venta.id,tipo:'venta',cantidad:-cantidad,motivo:'Venta'})
       total+=p.precio*cantidad
       if(!Number.isSafeInteger(total))throw new ErrorVenta(422,'Importe fuera de rango')
-      await tx.insert(factura_items).values({factura_id:venta.id,producto_id:id,cantidad,precio:p.precio,descripcion:p.nombre})
+      await tx.insert(factura_items).values({factura_id:venta.id,producto_id:id,cantidad,precio:p.precio,descripcion:p.nombre,codigo_producto:p.codigo})
     }
-    if (formaPago==='CUENTA_CORRIENTE' && cliente && cliente.limite_credito !== null) {
+    let saldoCliente: number | null = null
+    if (formaPago==='CUENTA_CORRIENTE' && cliente) {
       const [cuenta] = await tx.select({saldo:sql<number>`coalesce(sum(${movimientos_cuenta.importe}),0)`}).from(movimientos_cuenta).where(eq(movimientos_cuenta.cliente_id,cliente.id))
-      if (cuenta.saldo + total > cliente.limite_credito) throw new ErrorVenta(422,'La venta supera el límite de crédito del cliente.')
+      saldoCliente=cuenta.saldo+total
+      if (cliente.limite_credito !== null && saldoCliente > cliente.limite_credito) throw new ErrorVenta(422,'La venta supera el límite de crédito del cliente.')
     }
     const montoRecibido = formaPago === 'CONTADO' ? recibido ?? total : null
     if (montoRecibido !== null && montoRecibido < total) throw new ErrorVenta(422,'El monto recibido no cubre el total.')
-    await tx.update(facturas).set({total,monto_recibido:montoRecibido,tarjeta_tipo:tarjeta?.tipo,
+    await tx.update(facturas).set({total,saldo_cliente_venta:saldoCliente,monto_recibido:montoRecibido,tarjeta_tipo:tarjeta?.tipo,
       tarjeta_marca:tarjeta?.marca,tarjeta_ultimos4:tarjeta?.ultimos4}).where(eq(facturas.id,venta.id))
     if(formaPago==='CUENTA_CORRIENTE'&&clienteId)await tx.insert(movimientos_cuenta).values({cliente_id:clienteId,factura_id:venta.id,importe:total})
     return {numero:venta.id,total,...(montoRecibido !== null ? {montoRecibido,vuelto:montoRecibido-total} : {})}

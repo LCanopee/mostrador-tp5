@@ -206,3 +206,10 @@ La venta de contado muestra el vuelto. Si se deja vacío el monto recibido se us
 En base aislada: $7.000 recibidos para una venta de $6.500 devolvieron $500. El pago exacto devolvió cero. La tarjeta conservó los ceros iniciales de los últimos cuatro dígitos. Una venta por el límite de crédito pasó. Los rechazos por efectivo insuficiente, datos adicionales de tarjeta, consumidor final a crédito y exceso de límite mantuvieron factura, stock y saldo sin cambios. TypeScript pasó. Pendientes migración remota y prueba visual.
 
 Pregunta para la defensa: ¿por qué el servidor recalcula el vuelto y verifica el crédito? Usa el precio y el saldo vigentes al confirmar, aunque hayan cambiado desde que se abrió la pantalla.
+
+### Comprobante imprimible (RF-V7)
+Después de confirmar una venta se puede abrir su factura desde Ventas o desde las últimas facturas del cliente. La página y la API de detalle exigen sesión. El comprobante incluye numeración, fecha argentina, vendedor, comprador, renglones con subtotales, total y cobro. La migración 0006 permite copiar al emitir el código del producto, los datos del comprador, el nombre del vendedor y el saldo posterior cuando corresponde. Para facturas anteriores se muestran los datos históricos disponibles.
+
+Prueba aislada: emitimos con las tres formas de pago y verificamos vuelto, terminación de tarjeta con cero inicial y saldo de cuenta corriente. Modificamos producto, comprador y vendedor y el detalle de la primera factura siguió siendo idéntico. TypeScript pasó. Falta probar la vista previa de impresión publicada.
+
+Pregunta para la defensa: si cambia el domicilio del cliente o el precio del artículo mañana, ¿qué pasa con el comprobante emitido hoy? La reimpresión usa los datos copiados a la factura y a sus renglones al confirmar la venta.

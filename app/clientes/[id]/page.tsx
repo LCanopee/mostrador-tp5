@@ -40,7 +40,7 @@ export default async function Cliente({params,searchParams}:{params:Promise<{id:
     <Formulario cliente={{id,nombre:c.nombre,tipo_doc:c.tipoDoc,documento:c.nroDoc,email:c.email,domicilio:c.domicilio,telefono:c.telefono,habilitado:Number(c.cuentaCorriente),limite_credito:c.limiteCredito}}/>
     <h2>Últimas facturas</h2>
     {c.ultimasFacturas.length ? <table><thead><tr><th>Número</th><th>Fecha</th><th>Pago</th><th>Total</th></tr></thead>
-      <tbody>{c.ultimasFacturas.map(f=><tr key={f.id}><td>{f.numeroFormateado}</td><td>{fecha(f.fecha)}</td><td>{f.formaPago.replaceAll('_',' ')}</td><td>{importe(f.total)}</td></tr>)}</tbody></table> : <p>Sin facturas.</p>}
+      <tbody>{c.ultimasFacturas.map(f=><tr key={f.id}><td><Link href={'/ventas/'+f.id}>{f.numeroFormateado}</Link></td><td>{fecha(f.fecha)}</td><td>{f.formaPago.replaceAll('_',' ')}</td><td>{importe(f.total)}</td></tr>)}</tbody></table> : <p>Sin facturas.</p>}
     <h2>Movimientos de cuenta corriente</h2>{c.activo && c.cuentaCorriente && c.saldo>0 && <Pago id={id} saldo={c.saldo}/>}
     <form><label>Desde<input type="date" name="desde" defaultValue={filtro.get('desde') ?? ''}/></label>
       <label>Hasta<input type="date" name="hasta" defaultValue={filtro.get('hasta') ?? ''}/></label>
